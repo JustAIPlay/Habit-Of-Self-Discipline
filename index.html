@@ -1,0 +1,171 @@
+<!-- 文档类型声明和语言设置 -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学生自律星球</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 页面头部，包含标题和口号 -->
+    <div class="header">
+        <h1>小学生自律星球</h1>
+        <p>每天进步一小步，离梦想更近一大步！</p>
+    </div>
+
+    <div class="container">
+        <!-- 进度展示区域，显示完成情况和成就 -->
+        <div class="progress-container">
+            <div class="progress-title">我的自律进度</div>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <p style="text-align: center;">已完成今日任务的 75%</p>
+            <!-- 等级和成就显示 -->
+            <div class="level-display">
+                <div class="level">
+                    <div class="level-title">自律等级</div>
+                    <div class="level-value">4</div>
+                </div>
+                <div class="level">
+                    <div class="level-title">连续打卡</div>
+                    <div class="level-value">7天</div>
+                </div>
+                <div class="level">
+                    <div class="level-title">星星数量</div>
+                    <div class="level-value">42</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学习任务卡片 -->
+        <div class="card study">
+            <div class="card-title">学习任务</div>
+            <div class="planet-decoration"></div>
+            <!-- 各项学习任务 -->
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">按时完成数学作业</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox"></div>
+                <div class="task-text">阅读课外书20分钟</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox"></div>
+                <div class="task-text">复习语文生字</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日常生活任务卡片 -->
+        <div class="card daily">
+            <div class="card-title">日常生活</div>
+            <div class="planet-decoration"></div>
+            <!-- 各项生活任务 -->
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">早上7点准时起床</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">整理书包和学习用品</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox"></div>
+                <div class="task-text">晚上9点前睡觉</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">每天刷牙洗脸</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 纪律任务卡片 -->
+        <div class="card discipline">
+            <div class="card-title">遵守纪律</div>
+            <div class="planet-decoration"></div>
+            <!-- 各项纪律任务 -->
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">上课认真听讲</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox"></div>
+                <div class="task-text">课间不追跑打闹</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                </div>
+            </div>
+            <div class="task">
+                <div class="checkbox checked"></div>
+                <div class="task-text">按时到校不迟到</div>
+                <div class="stars">
+                    <div class="star">★</div>
+                    <div class="star">★</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 奖励卡片 -->
+        <div class="card rewards">
+            <div class="card-title">我的奖励</div>
+            <div class="planet-decoration"></div>
+            <!-- 可兑换的奖励列表 -->
+            <div class="reward-item">
+                <div class="reward-stars">20★</div>
+                <div class="task-text">看一集喜欢的动画片</div>
+            </div>
+            <div class="reward-item">
+                <div class="reward-stars">50★</div>
+                <div class="task-text">去公园玩一小时</div>
+            </div>
+            <div class="reward-item">
+                <div class="reward-stars">100★</div>
+                <div class="task-text">周末与家人去游乐场</div>
+            </div>
+        </div>
+
+        <!-- 打卡按钮 -->
+        <button class="button">今日打卡</button>
+    </div>
+
+    <!-- 页面底部 -->
+    <div class="footer">
+        © 2025 小学生自律星球 - 让自律成为一种习惯
+    </div>
+
+    <!-- 引入JavaScript文件 -->
+    <script src="script.js"></script>
+</body>
+</html>
