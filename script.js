@@ -411,7 +411,12 @@ function updateTasksDisplay(tasks) {
             const stars = '★'.repeat(task.fields['星星数量'] || 0);
             taskElement.innerHTML = `
                 <div class="checkbox ${task.fields['已完成'] ? 'checked' : ''}"></div>
-                <div class="task-text">${task.fields['任务名称']}</div>
+                <div class="task-content">
+                    <div class="task-text">
+                        <span class="task-name">${task.fields['任务名称']}</span>
+                        ${task.fields['任务描述'] ? `<span class="task-description"> - ${task.fields['任务描述']}</span>` : ''}
+                    </div>
+                </div>
                 <div class="stars">${stars}</div>
             `;
 

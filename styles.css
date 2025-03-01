@@ -178,14 +178,30 @@ body {
 /* 任务文本样式 */
 .task-text {
     flex-grow: 1;
+    margin-right: 10px;
+}
+
+.task-name {
+    font-weight: bold;
+    color: #2575fc;
+    font-size: 1.05em;
+}
+
+.task-description {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.4;
 }
 
 /* 星星容器样式 */
 .stars {
     display: flex;
     justify-content: flex-end;
-    margin-left: 10px;
-    color: #FFD700; /* 添加金色 */
+    margin-left: auto;
+    color: #FFD700; /* 金色星星 */
+    min-width: 30px;
+    text-align: right;
 }
 
 /* 星星样式 */
