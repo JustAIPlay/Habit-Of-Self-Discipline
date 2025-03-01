@@ -165,37 +165,11 @@ class FeishuAPI:
             # 计算当前等级（每完成3个任务提升一级）
             current_level = (completed_count // 3) + 1
             
-            # 计算连续打卡天数
-            completion_dates = []
-            for task in completed_tasks:
-                completion_time = task['fields'].get('completion_time', '')
-                if completion_time:
-                    date = completion_time.split('T')[0]
-                    completion_dates.append(date)
-            
-            # 按日期排序
-            completion_dates.sort()
-            
-            # 计算连续天数
-            streak_days = 1 if completion_dates else 0
-            if len(completion_dates) > 1:
-                from datetime import datetime, timedelta
-                current_streak = 1
-                for i in range(1, len(completion_dates)):
-                    current_date = datetime.strptime(completion_dates[i], '%Y-%m-%d')
-                    prev_date = datetime.strptime(completion_dates[i-1], '%Y-%m-%d')
-                    if (current_date - prev_date).days == 1:
-                        current_streak += 1
-                    else:
-                        current_streak = 1
-                streak_days = current_streak
-            
             # 计算总星星数 - 累加每个已完成任务的星星数量
             total_stars = sum(int(task['fields'].get('星星数量', 1)) for task in completed_tasks)
             
             progress_data = {
                 'current_level': current_level,
-                'streak_days': streak_days,
                 'total_stars': total_stars,
                 'completed_tasks': completed_count,
                 'total_tasks': total_tasks
@@ -237,7 +211,6 @@ class FeishuAPI:
             # 准备基本字段数据
             fields = {
                 "用户ID": user_id,
-                "连续打卡天数": progress_data['streak_days'],
                 "累计星星数": progress_data['total_stars'],
                 "当前等级": progress_data['current_level']
             }
@@ -270,7 +243,6 @@ class FeishuAPI:
             # 准备单个任务的字段数据
             fields = {
                 "用户ID": user_id,
-                "连续打卡天数": progress_data['streak_days'],
                 "累计星星数": progress_data['total_stars'],
                 "当前等级": progress_data['current_level'],
                 "任务ID": task['record_id'],

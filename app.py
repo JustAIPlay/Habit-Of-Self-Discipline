@@ -142,38 +142,12 @@ def user_checkin():
         # 计算新的进度数据
         current_level = (completed_count // 3) + 1
         
-        # 计算连续打卡天数
-        completion_dates = []
-        for task in completed_tasks:
-            completion_time = task['fields'].get('completion_time', '')
-            if completion_time:
-                date = completion_time.split('T')[0]
-                completion_dates.append(date)
-        
-        # 按日期排序
-        completion_dates.sort()
-        
-        # 计算连续天数
-        streak_days = 1 if completion_dates else 0
-        if len(completion_dates) > 1:
-            from datetime import datetime, timedelta
-            current_streak = 1
-            for i in range(1, len(completion_dates)):
-                current_date = datetime.strptime(completion_dates[i], '%Y-%m-%d')
-                prev_date = datetime.strptime(completion_dates[i-1], '%Y-%m-%d')
-                if (current_date - prev_date).days == 1:
-                    current_streak += 1
-                else:
-                    current_streak = 1
-            streak_days = current_streak
-        
         # 计算总星星数 - 累加每个已完成任务的星星数量
         total_stars = sum(int(task['fields'].get('星星数量', 1)) for task in completed_tasks)
         
         # 准备进度数据
         progress_data = {
             'current_level': current_level,
-            'streak_days': streak_days,
             'total_stars': total_stars,
             'completed_tasks': completed_count,
             'total_tasks': total_tasks
@@ -186,7 +160,7 @@ def user_checkin():
         feishu_api.update_user_progress(user_id, selected_tasks, progress_data)
         
         # 生成奖励消息
-        reward_message = f'恭喜你完成了{len(selected_task_ids)}项任务！\n当前等级：{current_level}\n连续打卡：{streak_days}天\n累计星星：{total_stars}颗'
+        reward_message = f'恭喜你完成了{len(selected_task_ids)}项任务！\n当前等级：{current_level}\n累计星星：{total_stars}颗'
         
         return jsonify({
             'code': 0,

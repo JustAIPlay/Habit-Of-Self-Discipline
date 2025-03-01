@@ -198,8 +198,6 @@ async function fetchUserProgress() {
 function updateProgressDisplay(progress) {
     document.querySelector('.level-value').textContent = progress.current_level;
     document.querySelector('.level:nth-child(2) .level-value').textContent = 
-        progress.streak_days + '天';
-    document.querySelector('.level:nth-child(3) .level-value').textContent = 
         progress.total_stars;
 }
 
