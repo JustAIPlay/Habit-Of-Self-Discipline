@@ -226,21 +226,22 @@ body {
     line-height: 1.4;
 }
 
-/* 星星容器样式 */
+/* 蓝宝石容器样式 */
 .stars {
     display: flex;
     justify-content: flex-end;
     margin-left: auto;
-    color: #FFD700; /* 金色星星 */
+    color: #2196F3; /* 蓝宝石颜色 */
     min-width: 30px;
     text-align: right;
 }
 
-/* 星星样式 */
+/* 蓝宝石样式 */
 .star {
-    color: #ffd700;
+    color: #2196F3;
     font-size: 20px;
     margin-left: 2px;
+    text-shadow: 0 0 2px rgba(33, 150, 243, 0.3);
 }
 
 /* 进度容器样式 */

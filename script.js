@@ -414,7 +414,7 @@ function updateTasksDisplay(tasks) {
             // 检查任务完成状态
             const isCompleted = task.fields['任务完成状态'] === '是' || task.fields['已完成'];
             
-            const stars = '★'.repeat(task.fields['星星数量'] || 0);
+            const stars = '💎'.repeat(task.fields['星星数量'] || 0);
             taskElement.innerHTML = `
                 <div class="checkbox ${isSelected ? 'selected' : ''} ${isCompleted ? 'checked disabled' : ''}"></div>
                 <div class="task-content">
@@ -460,7 +460,7 @@ function updateTasksDisplay(tasks) {
     });
 
     // 更新进度条
-    const completedTasks = tasks.filter(task => task.fields['已完成']);
+    const completedTasks = tasks.filter(task => task.fields['任务完成状态'] === '是' || task.fields['已完成']);
     const completionRate = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
     document.querySelector('.progress').style.width = `${completionRate}%`;
     document.querySelector('.progress-container p').textContent = 
@@ -604,7 +604,7 @@ function updateRewardsDisplay(rewards) {
         rewardItem.innerHTML = `
             <div class="reward-icon">🎁</div>
             <div class="reward-text">${reward.fields['奖励名称'] || reward.fields['reward_name'] || '未命名奖励'}</div>
-            <div class="reward-cost">${reward.fields['所需星星数'] || reward.fields['stars_required'] || 0}★</div>
+            <div class="reward-cost">${reward.fields['所需星星数'] || reward.fields['stars_required'] || 0}💎</div>
         `;
         
         rewardContainer.appendChild(rewardItem);
