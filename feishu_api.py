@@ -8,7 +8,7 @@ class FeishuAPI:
         self.app_id = Config.FEISHU_APP_ID
         self.app_secret = Config.FEISHU_APP_SECRET
         self.base_id = Config.BASE_ID
-        self.table_id = Config.TABLE_ID
+        self.table_id = Config.TASK_TABLE_ID
         self.access_token = None
         self.token_expires_at = None
         print(f'FeishuAPI初始化完成，使用BASE_ID: {self.base_id}, TABLE_ID: {self.table_id}')
@@ -29,6 +29,7 @@ class FeishuAPI:
         
         response = requests.post(url, headers=headers, json=data)
         response_data = response.json()
+        print(f'获取访问令牌响应: {response_data}')
         
         if response_data.get("code") == 0:
             self.access_token = response_data.get("tenant_access_token")
@@ -37,6 +38,27 @@ class FeishuAPI:
             return self.access_token
         else:
             error_msg = f"获取访问令牌失败: {response_data}"
+            print(f'错误: {error_msg}')
+            raise Exception(error_msg)
+    
+    def get_tables(self, app_token):
+        """获取多维表格中的所有数据表"""
+        print('开始获取数据表列表...')
+        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables"
+        headers = {
+            'Authorization': f'Bearer {self._get_access_token()}',
+            'Content-Type': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        response_data = response.json()
+        print(f'获取数据表响应: {response_data}')
+        
+        if response_data.get("code") == 0:
+            tables = response_data.get("data", {}).get("items", [])
+            print(f'成功获取数据表列表，共{len(tables)}个数据表')
+            return tables
+        else:
+            error_msg = f"获取数据表列表失败: {response_data}"
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
     
@@ -82,3 +104,46 @@ class FeishuAPI:
             error_msg = f"更新任务状态失败: {response_data}"
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
+    
+    def create_task(self, fields):
+        """创建新任务"""
+        print(f'开始创建任务: {fields.get("任务名称")}...')
+        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{self.table_id}/records"
+        headers = {
+            "Authorization": f"Bearer {self._get_access_token()}",
+            "Content-Type": "application/json"
+        }
+        data = {"fields": fields}
+        
+        response = requests.post(url, headers=headers, json=data)
+        response_data = response.json()
+        
+        if response_data.get("code") == 0:
+            print(f'成功创建任务: {fields.get("任务名称")}')
+            return response_data.get("data", {}).get("record")
+        else:
+            error_msg = f"创建任务失败: {response_data}"
+            print(f'错误: {error_msg}')
+            raise Exception(error_msg)
+    
+    def get_rewards(self):
+        """获取奖励列表"""
+        print('开始获取奖励列表...')
+        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{Config.REWARD_TABLE_ID}/records"
+        headers = {
+            "Authorization": f"Bearer {self._get_access_token()}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.get(url, headers=headers)
+        response_data = response.json()
+        
+        if response_data.get("code") == 0:
+            rewards = response_data.get("data", {}).get("items", [])
+            print(f'成功获取奖励列表，共{len(rewards)}个奖励')
+            return rewards
+        else:
+            error_msg = f"获取奖励列表失败: {response_data}"
+            print(f'错误: {error_msg}')
+            raise Exception(error_msg)
+
