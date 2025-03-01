@@ -147,3 +147,48 @@ class FeishuAPI:
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
 
+    def get_all_data(self):
+        """获取所有数据（任务、进度和奖励）"""
+        print('开始获取所有数据...')
+        try:
+            # 并行获取任务和奖励数据
+            tasks = self.get_tasks()
+            rewards = self.get_rewards()
+            
+            # 计算进度数据
+            completed_tasks = [task for task in tasks if task['fields'].get('已完成', False)]
+            total_tasks = len(tasks)
+            completed_count = len(completed_tasks)
+            
+            # 计算当前等级（每完成3个任务提升一级）
+            current_level = (completed_count // 3) + 1
+            
+            # 计算连续打卡天数
+            streak_days = len(set(task['fields'].get('completion_time', '').split('T')[0] 
+                               for task in completed_tasks if task['fields'].get('completion_time')))
+            
+            # 计算总星星数（每完成一个任务得一颗星）
+            total_stars = completed_count
+            
+            progress_data = {
+                'current_level': current_level,
+                'streak_days': streak_days,
+                'total_stars': total_stars,
+                'completed_tasks': completed_count,
+                'total_tasks': total_tasks
+            }
+            
+            # 组合所有数据
+            all_data = {
+                'tasks': tasks,
+                'progress': progress_data,
+                'rewards': rewards
+            }
+            
+            print(f'成功获取所有数据: 任务({len(tasks)}), 奖励({len(rewards)})')
+            return all_data
+        except Exception as e:
+            error_msg = f"获取所有数据失败: {str(e)}"
+            print(f'错误: {error_msg}')
+            raise Exception(error_msg)
+
