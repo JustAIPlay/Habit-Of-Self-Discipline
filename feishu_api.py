@@ -157,8 +157,8 @@ class FeishuAPI:
             tasks = self.get_tasks()
             rewards = self.get_rewards()
             
-            # 计算进度数据
-            completed_tasks = [task for task in tasks if task['fields'].get('已完成', False)]
+            # 计算进度数据 - 同时检查两种完成状态字段
+            completed_tasks = [task for task in tasks if task['fields'].get('已完成', False) or task['fields'].get('任务完成状态') == '是']
             total_tasks = len(tasks)
             completed_count = len(completed_tasks)
             
@@ -166,15 +166,32 @@ class FeishuAPI:
             current_level = (completed_count // 3) + 1
             
             # 计算连续打卡天数
-            streak_days = len(set(task['fields'].get('completion_time', '').split('T')[0] 
-                               for task in completed_tasks if task['fields'].get('completion_time')))
+            completion_dates = []
+            for task in completed_tasks:
+                completion_time = task['fields'].get('completion_time', '')
+                if completion_time:
+                    date = completion_time.split('T')[0]
+                    completion_dates.append(date)
+            
+            # 按日期排序
+            completion_dates.sort()
+            
+            # 计算连续天数
+            streak_days = 1 if completion_dates else 0
+            if len(completion_dates) > 1:
+                from datetime import datetime, timedelta
+                current_streak = 1
+                for i in range(1, len(completion_dates)):
+                    current_date = datetime.strptime(completion_dates[i], '%Y-%m-%d')
+                    prev_date = datetime.strptime(completion_dates[i-1], '%Y-%m-%d')
+                    if (current_date - prev_date).days == 1:
+                        current_streak += 1
+                    else:
+                        current_streak = 1
+                streak_days = current_streak
             
             # 计算总星星数 - 累加每个已完成任务的星星数量
-            total_stars = 0
-            for task in completed_tasks:
-                # 获取任务的星星数量，如果没有设置则默认为1
-                stars = int(task['fields'].get('星星数量', 1))
-                total_stars += stars
+            total_stars = sum(int(task['fields'].get('星星数量', 1)) for task in completed_tasks)
             
             progress_data = {
                 'current_level': current_level,
