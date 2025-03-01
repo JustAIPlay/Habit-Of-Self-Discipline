@@ -218,7 +218,7 @@ async function updateTaskStatus(recordId, isCompleted) {
             },
             body: JSON.stringify({
                 fields: {
-                    completed: isCompleted,
+                    '任务完成状态': isCompleted ? '已完成' : '未完成',
                     completion_time: isCompleted ? new Date().toISOString() : null
                 }
             })
@@ -304,6 +304,8 @@ async function fetchTasks() {
 // 更新任务显示
 // 本地存储键名 - 任务折叠状态
 const TASK_FOLD_STATUS = 'task_fold_status';
+// 选中的任务ID列表
+let selectedTaskIds = [];
 
 function updateTasksDisplay(tasks) {
     const taskContainer = document.querySelector('.task-container');
@@ -408,24 +410,49 @@ function updateTasksDisplay(tasks) {
             taskElement.className = 'task';
             taskElement.dataset.taskId = task.record_id;
             
+            // 检查任务是否已被选中
+            const isSelected = selectedTaskIds.includes(task.record_id);
+            
+            // 检查任务完成状态
+            const isCompleted = task.fields['任务完成状态'] === '是' || task.fields['已完成'];
+            
             const stars = '★'.repeat(task.fields['星星数量'] || 0);
             taskElement.innerHTML = `
-                <div class="checkbox ${task.fields['已完成'] ? 'checked' : ''}"></div>
+                <div class="checkbox ${isSelected ? 'selected' : ''} ${isCompleted ? 'checked disabled' : ''}"></div>
                 <div class="task-content">
                     <div class="task-text">
                         <span class="task-name">${task.fields['任务名称']}</span>
                         ${task.fields['任务描述'] ? `<span class="task-description"> - ${task.fields['任务描述']}</span>` : ''}
+                        ${isCompleted ? '<span class="task-completed">（已打卡）</span>' : ''}
                     </div>
                 </div>
                 <div class="stars">${stars}</div>
             `;
 
-            // 添加任务点击事件
+            // 添加任务点击事件 - 修改为选择任务而非立即更新状态
             const checkbox = taskElement.querySelector('.checkbox');
-            checkbox.addEventListener('click', () => {
-                const isCompleted = checkbox.classList.contains('checked');
-                updateTaskStatus(task.record_id, !isCompleted);
-            });
+            if (!isCompleted) { // 只有未完成的任务才能被选中
+                checkbox.addEventListener('click', () => {
+                    // 切换选中状态
+                    const taskId = task.record_id;
+                    if (selectedTaskIds.includes(taskId)) {
+                        // 取消选中
+                        selectedTaskIds = selectedTaskIds.filter(id => id !== taskId);
+                        checkbox.classList.remove('selected');
+                    } else {
+                        // 选中任务
+                        selectedTaskIds.push(taskId);
+                        checkbox.classList.add('selected');
+                    }
+                    
+                    // 更新打卡按钮状态
+                    updateCheckInButtonStatus();
+                });
+            } else {
+                // 对于已完成的任务，添加禁用样式并确保不能被点击选择
+                checkbox.classList.add('disabled');
+                taskElement.classList.add('completed-task');
+            }
 
             tasksContainer.appendChild(taskElement);
         });
@@ -440,6 +467,80 @@ function updateTasksDisplay(tasks) {
     document.querySelector('.progress').style.width = `${completionRate}%`;
     document.querySelector('.progress-container p').textContent = 
         `已完成今日任务的 ${Math.round(completionRate)}%`;
+        
+    // 更新打卡按钮状态
+    updateCheckInButtonStatus();
+}
+
+// 更新打卡按钮状态
+function updateCheckInButtonStatus() {
+    const checkInButton = document.querySelector('.check-in-button');
+    if (checkInButton) {
+        if (selectedTaskIds.length > 0) {
+            checkInButton.textContent = `打卡 (${selectedTaskIds.length}项任务)`;
+            checkInButton.classList.add('active');
+        } else {
+            checkInButton.textContent = '今日打卡';
+            checkInButton.classList.remove('active');
+        }
+    }
+}
+
+// 打卡功能 - 修改为提交选中的任务
+async function checkIn() {
+    if (!isOnline) {
+        showError('网络已断开，无法执行打卡');
+        return;
+    }
+    
+    // 如果没有选中任何任务，提示用户
+    if (selectedTaskIds.length === 0) {
+        showError('请至少选择一项已完成的任务进行打卡');
+        return;
+    }
+    
+    const checkInButton = document.querySelector('.check-in-button');
+    
+    // 禁用按钮，防止重复点击
+    if (checkInButton) {
+        checkInButton.disabled = true;
+        checkInButton.textContent = '打卡中...';
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/user/checkin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-ID': 'default_user' // 可以从本地存储或其他地方获取用户ID
+            },
+            body: JSON.stringify({
+                task_ids: selectedTaskIds
+            })
+        });
+        const result = await response.json();
+        if (result.code === 0) {
+            // 使用自定义成功提示
+            showSuccess('打卡成功！', result.data.reward_message);
+            
+            // 清除选中的任务ID
+            selectedTaskIds = [];
+            
+            // 清除缓存，强制刷新数据
+            clearAllCache();
+            refreshAllData();
+        } else {
+            showError(result.message || '打卡失败，请稍后重试');
+        }
+    } catch (error) {
+        showError('打卡失败，请稍后重试');
+    } finally {
+        // 恢复按钮状态
+        if (checkInButton) {
+            checkInButton.disabled = false;
+            checkInButton.textContent = '今日打卡';
+        }
+    }
 }
 
 // 清除所有缓存

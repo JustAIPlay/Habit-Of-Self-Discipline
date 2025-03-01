@@ -9,9 +9,10 @@ class FeishuAPI:
         self.app_secret = Config.FEISHU_APP_SECRET
         self.base_id = Config.BASE_ID
         self.table_id = Config.TASK_TABLE_ID
+        self.progress_table_id = Config.PROGRESS_TABLE_ID
         self.access_token = None
         self.token_expires_at = None
-        print(f'FeishuAPI初始化完成，使用BASE_ID: {self.base_id}, TABLE_ID: {self.table_id}')
+        print(f'FeishuAPI初始化完成，使用BASE_ID: {self.base_id}, TASK_TABLE_ID: {self.table_id}, PROGRESS_TABLE_ID: {self.progress_table_id}')
         
     def _get_access_token(self):
         """获取飞书访问令牌"""
@@ -83,10 +84,11 @@ class FeishuAPI:
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
     
-    def update_task(self, record_id, fields):
-        """更新任务状态"""
-        print(f'开始更新任务 {record_id} 的状态...')
-        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{self.table_id}/records/{record_id}"
+    def update_task(self, record_id, fields, is_progress=False):
+        """更新任务状态或进度"""
+        table_id = self.progress_table_id if is_progress else self.table_id
+        print(f'开始更新记录 {record_id} 的状态...')
+        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{table_id}/records/{record_id}"
         headers = {
             "Authorization": f"Bearer {self._get_access_token()}",
             "Content-Type": "application/json"
@@ -167,8 +169,12 @@ class FeishuAPI:
             streak_days = len(set(task['fields'].get('completion_time', '').split('T')[0] 
                                for task in completed_tasks if task['fields'].get('completion_time')))
             
-            # 计算总星星数（每完成一个任务得一颗星）
-            total_stars = completed_count
+            # 计算总星星数 - 累加每个已完成任务的星星数量
+            total_stars = 0
+            for task in completed_tasks:
+                # 获取任务的星星数量，如果没有设置则默认为1
+                stars = int(task['fields'].get('星星数量', 1))
+                total_stars += stars
             
             progress_data = {
                 'current_level': current_level,
@@ -189,6 +195,110 @@ class FeishuAPI:
             return all_data
         except Exception as e:
             error_msg = f"获取所有数据失败: {str(e)}"
+            print(f'错误: {error_msg}')
+            raise Exception(error_msg)
+    
+    def update_user_progress(self, user_id, tasks, progress_data):
+        """更新用户进度表"""
+        print(f'开始更新用户 {user_id} 的进度数据...')
+        
+        # 检查两种可能的完成状态字段：'已完成'和'任务完成状态'
+        completed_tasks = []
+        for task in tasks:
+            if task['fields'].get('已完成', False) or task['fields'].get('任务完成状态') == '是':
+                completed_tasks.append(task)
+        
+        # 如果没有已完成的任务，仍然创建一条基本进度记录
+        if not completed_tasks:
+            print('没有已完成的任务，创建基本进度记录')
+            url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{Config.PROGRESS_TABLE_ID}/records"
+            headers = {
+                "Authorization": f"Bearer {self._get_access_token()}",
+                "Content-Type": "application/json"
+            }
+            
+            # 准备基本字段数据
+            fields = {
+                "用户ID": user_id,
+                "连续打卡天数": progress_data['streak_days'],
+                "累计星星数": progress_data['total_stars'],
+                "当前等级": progress_data['current_level']
+            }
+            
+            data = {"fields": fields}
+            print(f'更新基本数据: {data}')
+            
+            response = requests.post(url, headers=headers, json=data)
+            response_data = response.json()
+            
+            if response_data.get("code") == 0:
+                print(f'成功更新用户 {user_id} 的基本进度数据')
+                return response_data.get("data", {}).get("record")
+            else:
+                error_msg = f"更新用户进度失败: {response_data}"
+                print(f'错误: {error_msg}')
+                raise Exception(error_msg)
+        
+        # 为每个已完成的任务创建单独的记录
+        print(f'为 {len(completed_tasks)} 个已完成任务创建单独记录')
+        created_records = []
+        
+        for task in completed_tasks:
+            url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{Config.PROGRESS_TABLE_ID}/records"
+            headers = {
+                "Authorization": f"Bearer {self._get_access_token()}",
+                "Content-Type": "application/json"
+            }
+            
+            # 准备单个任务的字段数据
+            fields = {
+                "用户ID": user_id,
+                "连续打卡天数": progress_data['streak_days'],
+                "累计星星数": progress_data['total_stars'],
+                "当前等级": progress_data['current_level'],
+                "任务ID": task['record_id'],
+                "任务完成状态": "是"
+            }
+            
+            data = {"fields": fields}
+            print(f'创建任务进度记录: {task["record_id"]} - {fields.get("任务名称")}')
+            
+            response = requests.post(url, headers=headers, json=data)
+            response_data = response.json()
+            
+            if response_data.get("code") == 0:
+                print(f'成功创建任务进度记录: {task["record_id"]}')
+                created_records.append(response_data.get("data", {}).get("record"))
+            else:
+                error_msg = f"创建任务进度记录失败: {response_data}"
+                print(f'错误: {error_msg}')
+                # 继续处理其他任务，不中断流程
+                print("继续处理其他任务...")
+        
+        print(f'成功更新用户 {user_id} 的进度数据，创建了 {len(created_records)} 条记录')
+        return created_records
+    
+    def reset_tasks_status(self):
+        """重置所有任务的完成状态为"否"""
+        print('开始重置所有任务的完成状态...')
+        try:
+            # 获取所有任务
+            tasks = self.get_tasks()
+            reset_count = 0
+            
+            # 遍历所有任务并重置状态
+            for task in tasks:
+                record_id = task['record_id']
+                # 只有当任务状态为"是"才需要重置
+                if task['fields'].get('任务完成状态') == '是':
+                    fields = {'任务完成状态': '否'}
+                    self.update_task(record_id, fields, is_progress=False)
+                    reset_count += 1
+            
+            print(f'成功重置 {reset_count} 个任务的完成状态')
+            return reset_count
+        except Exception as e:
+            error_msg = f"重置任务状态失败: {str(e)}"
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
 

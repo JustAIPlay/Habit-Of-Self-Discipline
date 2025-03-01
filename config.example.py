@@ -7,13 +7,16 @@ class Config:
     
     # 多维表格配置
     BASE_ID = os.getenv('BASE_ID')  # 在此填入你的多维表格ID
-    TABLE_ID = os.getenv('TABLE_ID')  # 在此填入你的数据表ID
+    TASK_TABLE_ID = os.getenv('TASK_TABLE_ID')  # 在此填入你的任务表ID
+    REWARD_TABLE_ID = os.getenv('REWARD_TABLE_ID')  # 在此填入你的奖励表ID
+    PROGRESS_TABLE_ID = os.getenv('PROGRESS_TABLE_ID')  # 在此填入你的用户进度表ID
     
     @staticmethod
     def validate_config():
         """验证配置是否完整"""
         print('开始验证配置...')
-        required_vars = ['FEISHU_APP_ID', 'FEISHU_APP_SECRET', 'BASE_ID', 'TABLE_ID']
+        required_vars = ['FEISHU_APP_ID', 'FEISHU_APP_SECRET', 'BASE_ID', 
+                        'TASK_TABLE_ID', 'REWARD_TABLE_ID', 'PROGRESS_TABLE_ID']
         for var in required_vars:
             value = getattr(Config, var)
             print(f'检查配置 {var}: {"已设置" if value else "未设置"}')

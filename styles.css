@@ -175,6 +175,38 @@ body {
     transform: translate(-50%, -50%);
 }
 
+.checkbox.selected {
+    background-color: #ffb74d;
+    border-color: #ff9800;
+}
+
+.checkbox.selected::after {
+    content: '+';
+    position: absolute;
+    color: white;
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.checkbox.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.task-completed {
+    color: #4caf50;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.check-in-button.active {
+    background-color: #ff9800;
+    box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+}
+
 /* 任务文本样式 */
 .task-text {
     flex-grow: 1;
