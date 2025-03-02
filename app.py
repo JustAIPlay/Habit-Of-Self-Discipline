@@ -17,11 +17,34 @@ print('开始应用初始化...')
 Config.validate_config()
 print('应用初始化完成')
 
+# 创建一个文件来存储上次重置日期，避免依赖session
+RESET_DATE_FILE = 'last_reset_date.txt'
+
+def get_last_reset_date():
+    """从文件中获取上次重置日期"""
+    try:
+        if os.path.exists(RESET_DATE_FILE):
+            with open(RESET_DATE_FILE, 'r') as f:
+                return f.read().strip()
+        return None
+    except Exception as e:
+        print(f'读取上次重置日期失败: {str(e)}')
+        return None
+
+def save_reset_date(date_str):
+    """保存重置日期到文件"""
+    try:
+        with open(RESET_DATE_FILE, 'w') as f:
+            f.write(date_str)
+        print(f'已保存重置日期: {date_str}')
+    except Exception as e:
+        print(f'保存重置日期失败: {str(e)}')
+
 @app.route('/')
 def index():
     # 检查是否需要重置任务状态（每天首次访问时）
     today = datetime.now().strftime('%Y-%m-%d')
-    last_reset_date = session.get('last_reset_date')
+    last_reset_date = get_last_reset_date()
     
     if last_reset_date != today:
         print(f'检测到新的一天，上次重置日期: {last_reset_date}, 当前日期: {today}')
@@ -29,7 +52,7 @@ def index():
             reset_count = feishu_api.reset_tasks_status()
             print(f'已重置 {reset_count} 个任务的状态')
             # 更新最后重置日期
-            session['last_reset_date'] = today
+            save_reset_date(today)
         except Exception as e:
             print(f'重置任务状态失败: {str(e)}')
     
@@ -191,6 +214,43 @@ def get_rewards():
     except Exception as e:
         error_msg = str(e)
         print(f'获取奖励列表失败: {error_msg}')
+        return jsonify({
+            'code': 1,
+            'message': error_msg
+        }), 500
+
+@app.route('/api/rewards/redeem', methods=['POST'])
+def redeem_reward():
+    """兑换奖励"""
+    print('收到兑换奖励请求')
+    try:
+        # 获取请求数据
+        reward_id = request.json.get('reward_id')
+        user_id = request.headers.get('X-User-ID', 'default_user')  # 从请求头获取用户ID
+        current_stars = request.json.get('current_stars', 0)
+        
+        if not reward_id:
+            return jsonify({
+                'code': 1,
+                'message': '缺少奖励ID'
+            }), 400
+        
+        # 调用飞书API兑换奖励
+        result = feishu_api.redeem_reward(reward_id, user_id, current_stars)
+        
+        print(f'成功兑换奖励: {reward_id}')
+        return jsonify({
+            'code': 0,
+            'data': {
+                'reward': result['reward'],
+                'stars_spent': result['stars_spent'],
+                'remaining_stars': result['remaining_stars'],
+                'message': f'恭喜你成功兑换了 {result["reward"]["fields"].get("奖励名称", "未命名奖励")}！'
+            }
+        })
+    except Exception as e:
+        error_msg = str(e)
+        print(f'兑换奖励失败: {error_msg}')
         return jsonify({
             'code': 1,
             'message': error_msg

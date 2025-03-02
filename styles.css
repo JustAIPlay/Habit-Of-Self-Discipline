@@ -624,11 +624,64 @@ body {
     transition: all 0.3s ease;
     cursor: pointer;
     border: 1px solid #ffe0b2;
+    position: relative;
 }
 
-.reward-item:hover {
+.reward-item.available:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
+}
+
+.reward-item.insufficient {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.reward-item.redeemed {
+    background-color: rgba(100, 100, 100, 0.2);
+    cursor: default;
+}
+
+/* 奖励悬浮提示样式 */
+.reward-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    max-width: 200px;
+    text-align: center;
+}
+
+/* 添加小三角形指示箭头 */
+.reward-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* 悬停时显示提示 */
+.reward-item:hover .reward-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-5px);
 }
 
 .reward-icon {
@@ -651,6 +704,106 @@ body {
     font-weight: bold;
 }
 
+.reward-status {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* 确认对话框样式 */
+.confirm-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.confirm-content {
+    background-color: #1a1a2e;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.confirm-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #fff;
+    text-align: center;
+}
+
+.confirm-message {
+    margin-bottom: 20px;
+    line-height: 1.5;
+    color: #ddd;
+}
+
+.confirm-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.confirm-button, .cancel-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.confirm-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancel-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.confirm-button:hover {
+    background-color: #45a049;
+}
+
+.cancel-button:hover {
+    background-color: #d32f2f;
+}
+
+.confirm-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* 飞行星星动画 */
+.flying-star {
+    position: fixed;
+    font-size: 24px;
+    z-index: 1000;
+    transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+}
+
+.flying-star.animate {
+    transform: scale(0.5);
+    opacity: 0;
+}
+
 /* Toast消息样式 */
 .toast-message {
     position: fixed;
@@ -670,4 +823,22 @@ body {
 @keyframes fadeInUp {
     from { bottom: -50px; opacity: 0; }
     to { bottom: 20px; opacity: 1; }
+}
+
+/* 宝石飞行动画样式 */
+.flying-gem {
+    position: fixed;
+    width: 24px;
+    height: 24px;
+    color: #2196F3;
+    font-size: 20px;
+    z-index: 2000;
+    pointer-events: none;
+    transition: all 1.5s cubic-bezier(0.25, 0.1, 0.25, 1.5);
+    text-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+}
+
+.flying-gem.animate {
+    transform: scale(0.5);
+    opacity: 0;
 }

@@ -290,4 +290,53 @@ class FeishuAPI:
             error_msg = f"重置任务状态失败: {str(e)}"
             print(f'错误: {error_msg}')
             raise Exception(error_msg)
+            
+    def redeem_reward(self, reward_id, user_id, current_stars):
+        """兑换奖励"""
+        print(f'开始兑换奖励 {reward_id}...')
+        try:
+            # 获取奖励信息
+            url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_id}/tables/{Config.REWARD_TABLE_ID}/records/{reward_id}"
+            headers = {
+                "Authorization": f"Bearer {self._get_access_token()}",
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.get(url, headers=headers)
+            response_data = response.json()
+            
+            if response_data.get("code") != 0:
+                raise Exception(f"获取奖励信息失败: {response_data}")
+                
+            reward = response_data.get("data", {}).get("record", {})
+            required_stars = int(reward.get("fields", {}).get("所需星星数", 0))
+            
+            # 检查星星是否足够
+            if current_stars < required_stars:
+                raise Exception(f"星星不足，需要{required_stars}颗星星，当前只有{current_stars}颗")
+            
+            # 更新奖励状态
+            fields = {
+                "是否已兑换": "是",
+                "兑换用户": user_id,
+                "兑换时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            response = requests.put(url, headers=headers, json={"fields": fields})
+            response_data = response.json()
+            
+            if response_data.get("code") == 0:
+                print(f'成功兑换奖励 {reward_id}')
+                return {
+                    "reward": reward,
+                    "stars_spent": required_stars,
+                    "remaining_stars": current_stars - required_stars
+                }
+            else:
+                raise Exception(f"更新奖励状态失败: {response_data}")
+                
+        except Exception as e:
+            error_msg = str(e)
+            print(f'兑换奖励失败: {error_msg}')
+            raise Exception(error_msg)
 

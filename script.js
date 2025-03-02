@@ -249,28 +249,57 @@ async function checkIn() {
         checkInButton.textContent = '打卡中...';
     }
     
+    // 先执行宝石飞行动画，在API请求前触发
+    createGemFlyAnimation();
+    
+    // 计算动画完成所需的总时间
+    const lastGemDelay = selectedTaskIds.length * 150; // 最后一个宝石的延迟
+    const animationTime = 1500; // 动画时间（与CSS中的transition时间一致）
+    const totalAnimationTime = lastGemDelay + animationTime; // 总动画时间
+    
+    // 记录API请求开始时间
+    const apiStartTime = Date.now();
+    
     try {
         const response = await fetch(`${API_BASE_URL}/user/checkin`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                task_ids: selectedTaskIds
+            })
         });
         const result = await response.json();
+        
+        // 立即恢复按钮状态
+        if (checkInButton) {
+            checkInButton.disabled = false;
+            checkInButton.textContent = '今日打卡';
+        }
+        
         if (result.code === 0) {
-            // 使用自定义成功提示
-            showSuccess('打卡成功！', result.data.reward_message);
+            // 计算显示成功提示的延迟时间
+            // 如果API响应时间小于动画时间，则等待动画完成后再显示提示
+            // 如果API响应时间大于动画时间，则立即显示提示
+            const extraDelay = 1000; // 额外添加1秒等待时间
+            const apiResponseTime = Date.now() - apiStartTime;
+            const delayForSuccess = Math.max(0, totalAnimationTime - apiResponseTime) + extraDelay;
             
-            // 清除缓存，强制刷新数据
-            clearAllCache();
-            refreshAllData();
+            setTimeout(() => {
+                // 使用自定义成功提示
+                showSuccess('打卡成功！', result.data.reward_message);
+                
+                // 清除缓存，强制刷新数据
+                clearAllCache();
+                refreshAllData();
+            }, delayForSuccess);
         } else {
             showError(result.message || '打卡失败，请确保完成所有任务');
         }
     } catch (error) {
         showError('打卡失败，请稍后重试');
-    } finally {
-        // 恢复按钮状态
+        // 发生错误时也要恢复按钮状态
         if (checkInButton) {
             checkInButton.disabled = false;
             checkInButton.textContent = '今日打卡';
@@ -502,8 +531,10 @@ async function checkIn() {
     // 禁用按钮，防止重复点击
     if (checkInButton) {
         checkInButton.disabled = true;
-        checkInButton.textContent = '打卡中...';
     }
+    
+    // 先触发宝石飞行动画
+    createGemFlyAnimation();
     
     try {
         const response = await fetch(`${API_BASE_URL}/user/checkin`, {
@@ -518,7 +549,7 @@ async function checkIn() {
         });
         const result = await response.json();
         if (result.code === 0) {
-            // 使用自定义成功提示
+            // API请求成功后立即显示成功提示
             showSuccess('打卡成功！', result.data.reward_message);
             
             // 清除选中的任务ID
@@ -539,6 +570,63 @@ async function checkIn() {
             checkInButton.textContent = '今日打卡';
         }
     }
+}
+
+// 创建宝石飞行动画
+function createGemFlyAnimation() {
+    // 获取蓝宝石数量显示区域的位置
+    const gemCountElement = document.querySelector('.level:nth-child(2) .level-value');
+    if (!gemCountElement) return;
+    
+    const targetRect = gemCountElement.getBoundingClientRect();
+    const targetX = targetRect.left + targetRect.width / 2;
+    const targetY = targetRect.top + targetRect.height / 2;
+    
+    // 为每个选中的任务创建飞行宝石
+    selectedTaskIds.forEach(taskId => {
+        const taskElement = document.querySelector(`.task[data-task-id="${taskId}"]`);
+        if (!taskElement) return;
+        
+        // 获取任务中的宝石数量
+        const starsElement = taskElement.querySelector('.stars');
+        if (!starsElement) return;
+        
+        const starsText = starsElement.textContent;
+        const gemCount = starsText.length;
+        
+        // 获取任务元素的位置
+        const taskRect = taskElement.getBoundingClientRect();
+        const startX = taskRect.left + starsElement.offsetLeft + starsElement.offsetWidth / 2;
+        const startY = taskRect.top + starsElement.offsetTop + starsElement.offsetHeight / 2;
+        
+        // 为每个宝石创建动画
+        for (let i = 0; i < gemCount; i++) {
+            // 创建宝石元素
+            const gem = document.createElement('div');
+            gem.className = 'flying-gem';
+            gem.textContent = '💎';
+            gem.style.left = `${startX}px`;
+            gem.style.top = `${startY}px`;
+            
+            // 添加到文档中
+            document.body.appendChild(gem);
+            
+            // 添加一点随机延迟，使动画更自然
+            setTimeout(() => {
+                // 设置目标位置，触发动画
+                gem.style.left = `${targetX}px`;
+                gem.style.top = `${targetY}px`;
+                gem.classList.add('animate');
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    if (gem.parentNode) {
+                        document.body.removeChild(gem);
+                    }
+                }, 1500);
+            }, i * 150); // 每个宝石延迟不同时间开始动画
+        }
+    });
 }
 
 // 清除所有缓存
@@ -598,17 +686,215 @@ function updateRewardsDisplay(rewards) {
     
     rewardContainer.innerHTML = '';
     
+    // 获取当前用户的星星数
+    const currentStars = parseInt(document.querySelector('.level:nth-child(2) .level-value').textContent) || 0;
+    
     rewards.forEach(reward => {
+        // 获取奖励所需星星数
+        const requiredStars = parseInt(reward.fields['所需星星数'] || reward.fields['stars_required'] || 0);
+        // 检查是否已兑换
+        const isRedeemed = reward.fields['是否已兑换'] === '是';
+        // 检查星星是否足够
+        const hasEnoughStars = currentStars >= requiredStars;
+        // 获取奖励描述
+        const rewardDescription = reward.fields['奖励描述'] || reward.fields['reward_description'] || '暂无描述';
+        
         const rewardItem = document.createElement('div');
         rewardItem.className = 'reward-item';
+        
+        // 根据状态添加不同的类名
+        if (isRedeemed) {
+            rewardItem.classList.add('redeemed');
+        } else if (!hasEnoughStars) {
+            rewardItem.classList.add('insufficient');
+        } else {
+            rewardItem.classList.add('available');
+        }
+        
+        // 根据奖励名称选择合适的图标
+        let rewardIcon = '🎁';
+        const rewardName = reward.fields['奖励名称'] || reward.fields['reward_name'] || '';
+        
+        // 娱乐奖励图标
+        if (rewardName.includes('动画片')) {
+            rewardIcon = '📺';
+        } else if (rewardName.includes('游戏')) {
+            rewardIcon = '🎮';
+        }
+        // 户外活动图标
+        else if (rewardName.includes('公园')) {
+            rewardIcon = '🌳';
+        } else if (rewardName.includes('自行车')) {
+            rewardIcon = '🚲';
+        }
+        // 特殊奖励图标
+        else if (rewardName.includes('玩具')) {
+            rewardIcon = '🎯';
+        } else if (rewardName.includes('游乐园')) {
+            rewardIcon = '🎡';
+        }
+        
         rewardItem.innerHTML = `
-            <div class="reward-icon">🎁</div>
-            <div class="reward-text">${reward.fields['奖励名称'] || reward.fields['reward_name'] || '未命名奖励'}</div>
-            <div class="reward-cost">${reward.fields['所需星星数'] || reward.fields['stars_required'] || 0}💎</div>
+            <div class="reward-icon">${rewardIcon}</div>
+            <div class="reward-text">${rewardName || '未命名奖励'}</div>
+            <div class="reward-cost">${requiredStars}💎</div>
+            ${isRedeemed ? '<div class="reward-status">已兑换</div>' : ''}
+            <div class="reward-tooltip">${rewardDescription}</div>
         `;
+        
+        // 只有未兑换且星星足够的奖励才能点击兑换
+        if (!isRedeemed && hasEnoughStars) {
+            rewardItem.addEventListener('click', () => {
+                showRedeemConfirmation(reward, currentStars);
+            });
+        }
         
         rewardContainer.appendChild(rewardItem);
     });
+}
+
+// 显示兑换确认对话框
+function showRedeemConfirmation(reward, currentStars) {
+    // 创建确认对话框
+    const confirmDialog = document.createElement('div');
+    confirmDialog.className = 'confirm-dialog';
+    
+    const rewardName = reward.fields['奖励名称'] || reward.fields['reward_name'] || '未命名奖励';
+    const requiredStars = parseInt(reward.fields['所需星星数'] || reward.fields['stars_required'] || 0);
+    
+    confirmDialog.innerHTML = `
+        <div class="confirm-content">
+            <div class="confirm-title">确认兑换</div>
+            <div class="confirm-message">
+                <p>你确定要兑换「${rewardName}」吗？</p>
+                <p>需要消耗 ${requiredStars} 颗星星</p>
+                <p>兑换后剩余: ${currentStars - requiredStars} 颗星星</p>
+            </div>
+            <div class="confirm-buttons">
+                <button class="cancel-button">取消</button>
+                <button class="confirm-button">确认兑换</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(confirmDialog);
+    
+    // 添加按钮事件
+    const cancelButton = confirmDialog.querySelector('.cancel-button');
+    const confirmButton = confirmDialog.querySelector('.confirm-button');
+    
+    // 取消按钮
+    cancelButton.addEventListener('click', () => {
+        document.body.removeChild(confirmDialog);
+    });
+    
+    // 确认按钮
+    confirmButton.addEventListener('click', async () => {
+        // 禁用按钮，防止重复点击
+        confirmButton.disabled = true;
+        confirmButton.textContent = '兑换中...';
+        
+        try {
+            await redeemReward(reward.record_id, currentStars);
+            document.body.removeChild(confirmDialog);
+        } catch (error) {
+            // 恢复按钮状态
+            confirmButton.disabled = false;
+            confirmButton.textContent = '确认兑换';
+            showError(error.message || '兑换失败，请重试');
+        }
+    });
+}
+
+// 兑换奖励API调用
+async function redeemReward(rewardId, currentStars) {
+    if (!isOnline) {
+        throw new Error('网络已断开，无法兑换奖励');
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/rewards/redeem`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reward_id: rewardId,
+                current_stars: currentStars
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.code === 0) {
+            // 兑换成功，显示成功消息
+            showSuccess('兑换成功', result.data.message);
+            
+            // 更新星星数量显示
+            document.querySelector('.level:nth-child(2) .level-value').textContent = 
+                result.data.remaining_stars;
+            
+            // 刷新奖励列表
+            refreshAllData();
+            
+            // 创建星星飞走的动画
+            createStarsFlyAnimation(result.data.stars_spent);
+            
+            return result.data;
+        } else {
+            throw new Error(result.message || '兑换失败');
+        }
+    } catch (error) {
+        console.error('兑换奖励失败:', error);
+        throw error;
+    }
+}
+
+// 创建星星飞走的动画
+function createStarsFlyAnimation(starsCount) {
+    // 获取星星数量显示元素的位置
+    const starsElement = document.querySelector('.level:nth-child(2) .level-value');
+    if (!starsElement) return;
+    
+    const starsRect = starsElement.getBoundingClientRect();
+    
+    // 星星起始位置（从星星数量显示位置开始）
+    const startX = starsRect.left + starsRect.width / 2;
+    const startY = starsRect.top + starsRect.height / 2;
+    
+    // 目标位置（奖励区域中心）
+    const rewardsCard = document.querySelector('.card.rewards');
+    if (!rewardsCard) return;
+    
+    const rewardsRect = rewardsCard.getBoundingClientRect();
+    const targetX = rewardsRect.left + rewardsRect.width / 2;
+    const targetY = rewardsRect.top + rewardsRect.height / 2;
+    
+    // 创建星星元素并添加动画
+    for (let i = 0; i < starsCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'flying-star';
+        star.textContent = '💎';
+        star.style.left = `${startX}px`;
+        star.style.top = `${startY}px`;
+        
+        document.body.appendChild(star);
+        
+        // 添加随机延迟
+        setTimeout(() => {
+            // 设置目标位置，触发动画
+            star.style.left = `${targetX}px`;
+            star.style.top = `${targetY}px`;
+            star.classList.add('animate');
+            
+            // 动画结束后移除元素
+            setTimeout(() => {
+                if (star.parentNode) {
+                    document.body.removeChild(star);
+                }
+            }, 1000);
+        }, i * 100);
+    }
 }
 
 // 修改刷新所有数据的函数，优先使用fetchAllData
